@@ -113,10 +113,16 @@ def predict(img):
     return max_index, gabor_filter_img, lined_image, sse
 
 if __name__ == '__main__':
-    try:
-        img_fn = sys.argv[1]
-    except:
+    import argparse 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--shape" , help="1 for Square, 0 for triangle", default="0")
+    args = parser.parse_args()
+
+    print(args)
+    if args.shape == "1":
         img_fn = './square.png'
+    else:
+        img_fn = './triangle.png'
 
     img = cv2.imread(img_fn)
     if img is None:
@@ -126,10 +132,12 @@ if __name__ == '__main__':
     max_index, gabor_filter_img, lined_image, sse = predict(img)
 
     cv2.imshow('Gabor Filtered Image', gabor_filter_img)
+    cv2.imwrite('Gabor_square.png', gabor_filter_img)
     if cv2.waitKey(0) & 0xff == 27:
         cv2.destroyAllWindows()
 
     cv2.imshow('Intersection Points of Gabor Filter Image', lined_image)
+    cv2.imwrite('hough_square.png', lined_image)
     if cv2.waitKey(0) & 0xff == 27:
         cv2.destroyAllWindows()
 

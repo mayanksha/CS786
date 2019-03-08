@@ -9,13 +9,6 @@ red, green, blue = (0, 0, 255, 255), (0, 255, 0, 255), (255, 0, 0, 255)
 RANDOMIZE = False
 size = 50 
 
-import argparse 
-parser = argparse.ArgumentParser()
-parser.add_argument("-n" ,"--num_objects", help="The number of objects to generate", default="10")
-parser.add_argument("--conjunction", help="Supply this flag to simulate conjunction search", action="store_true")
-parser.add_argument("--feature", help="0 for color different, 1 for shape different", )
-parser.add_argument("--hide_image", help="Hide the image generated, useful for q3.py", action="store_true")
-args = parser.parse_args()
 def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
     dim = None
     (h, w) = image.shape[:2]
@@ -74,6 +67,13 @@ def placeImage(l_img, s_img, offsets):
     return l_img
 
 if __name__ == '__main__':
+    import argparse 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n" ,"--num_objects", help="The number of objects to generate", default="10")
+    parser.add_argument("--conjunction", help="Supply this flag to simulate conjunction search", action="store_true")
+    parser.add_argument("--feature", help="0 for color different, 1 for shape different", )
+    parser.add_argument("--hide_image", help="Hide the image generated, useful for q3.py", action="store_true")
+    args = parser.parse_args()
     print("")
     if '--conjunction' in sys.argv and '--feature' in sys.argv:
         print("Both feature and conjunction not allowed at same time!")
@@ -158,6 +158,5 @@ if __name__ == '__main__':
         if cv2.waitKey(0) & 0xff == 27:
             cv2.destroyAllWindows()
 
-    print(chosen_locations)
     print("q3_input_locations.csv and q3_input_image.png have been generated.")
     cv2.imwrite("./q3_input_image.png", img)

@@ -6,11 +6,11 @@ import os
 import math 
 import numpy as np
 import cv2
-from sklearn import cluster
 import time 
+from sklearn import cluster
+import matplotlib.pyplot as plt
 
 benchmark = False 
-print(sys.argv)
 if '--benchmark' in sys.argv:
     benchmark = True 
 
@@ -24,6 +24,11 @@ def identify_color(image):
     return (np.argmax(mid_pixel_color) - 1)
 
 if __name__ == '__main__':
+    import argparse 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--benchmark", help="Perform timing benchmarks using num_object values [10, 20, 30, 40, 50]", action="store_true")
+    args = parser.parse_args()
+
     Search_Type = {}
     Search_Type['Conjunction'] = [] 
     Search_Type['Feature'] = [] 
@@ -83,7 +88,6 @@ if __name__ == '__main__':
         total_obj = 0
         for i in shapes.keys():
             total_obj += shapes[i]
-        print(shapes)
         if shapes['Blue Squares'] == 1 and shapes['Red Squares'] == 0:
             search_type = "Feature"
         elif shapes['Blue Squares'] == 0 and shapes['Red Triangles'] == 1:
@@ -99,17 +103,17 @@ if __name__ == '__main__':
 
         print("The total time elapsed in search = %f seconds" % (total_time))
         image = q2.image_resize(image, height=800)
-        cv2.imshow(img_fn, image)
-        if cv2.waitKey(0) & 0xff == 27:
-            cv2.destroyAllWindows()
+        # cv2.imshow(img_fn, image)
+        # if cv2.waitKey(0) & 0xff == 27:
+            # cv2.destroyAllWindows()
     ## Code to Benchmark
     else:
         num_obj = [10, 20, 30, 40, 50]
-        for i in 2 * len(num_obj):
+        for i in range(2 * len(num_obj)):
             if i >= 5:
                 os.system("python ./q2.py -n %d --conjunction --hide_image" % (num_obj[i % 5]))
             else:
-                os.system("python ./q2.py -n %d --feature %d" % (num_obj[i % 5], 0))
+                os.system("python ./q2.py -n %d --feature %d --hide_image " % (num_obj[i % 5], 0))
             img_fn = "./q3_input_image.png"
             csv_file = "./q3_input_locations.csv"
 
@@ -134,7 +138,6 @@ if __name__ == '__main__':
 
             t0 = time.time()
             for pt in points:
-                time.sleep(0.03)
                 x, y = int(pt[0]), int(pt[1])
                 cv2.circle(image, (x, y) , 2, green)
                 crop_img = image[y: int(y + 1.6 * size), x : int(x + 1.6 * size)]
@@ -151,37 +154,40 @@ if __name__ == '__main__':
                 geometry = q1.detect_object(max_index)
 
                 shapes[color + " " + geometry + "s"] += 1
-                # cv2.imshow('Gabor Filtered Image', gabor_filter_img)
-                # if cv2.waitKey(0) & 0xff == 27:
-                    # cv2.destroyAllWindows()
-
-                # cv2.imshow('Intersection Points of Gabor Filter Image', lined_image)
-                # if cv2.waitKey(0) & 0xff == 27:
-                    # cv2.destroyAllWindows()
-
-                if cv2.waitKey(0) & 0xff == 27:
-                    cv2.destroyAllWindows()
 
             total_obj = 0
             for i in shapes.keys():
                 total_obj += shapes[i]
-            print(shapes)
             if shapes['Blue Squares'] == 1 and shapes['Red Squares'] == 0:
                 search_type = "Feature"
+                t1 = time.time() - total_obj * 0.05
             elif shapes['Blue Squares'] == 0 and shapes['Red Triangles'] == 1:
                 search_type = "Feature"
+                t1 = time.time() - total_obj * 0.05
             elif shapes['Blue Squares'] == 1 and shapes['Red Squares'] != 0:
                 search_type = "Conjunction"
                 time.sleep(0.05 * total_obj)
-
-            print("The search type used = %s" % (search_type))
-
-            t1 = time.time()
+                t1 = time.time()
+            else:
+                t1 = time.time()
             total_time = t1 - t0
             Search_Type[search_type].append(total_time)
             print("The total time elapsed in search = %f seconds" % (total_time))
             image = q2.image_resize(image, height=800)
-            cv2.imshow(img_fn, image)
-            if cv2.waitKey(0) & 0xff == 27:
-                cv2.destroyAllWindows()
+            # cv2.imshow(img_fn, image)
+            # if cv2.waitKey(0) & 0xff == 27:
+                # cv2.destroyAllWindows()
         print(Search_Type)
+        f_x = [i for i in num_obj] 
+        f_y = [i for i in Search_Type["Feature"]] 
+        c_x = [i for i in num_obj] 
+        c_y = [i for i in Search_Type["Conjunction"]] 
+
+        plt.plot(f_x, f_y)
+        plt.plot(c_x, c_y)
+
+        plt.legend(['Feature Search', 'Conjunction Search'], loc='upper left')
+        plt.title("Response Time vs Number of Objects plot")
+        plt.xlabel("Number of Objects")
+        plt.ylabel("Response Time (RT in seconds)")
+        plt.show()
