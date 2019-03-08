@@ -11,13 +11,20 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 
 def build_filters():
     filters = []
-    ksize = 10
+    ksize = 10 
     sigma = 5.0
     for theta in np.arange(0, np.pi, np.pi / 16):
         kern = cv2.getGaborKernel((ksize, ksize), sigma, theta, 10.0, 0.5, 0, ktype=cv2.CV_32F)
-        kern /= 2.5*kern.sum()
+        kern /= 5*kern.sum()
         filters.append(kern)
     return filters
+def detect_object(val):
+    if val == 1:
+        return("Triangle")
+    elif val == 2:
+        return("Square")
+    else:
+        return("Some other shape")
 
 def intersection(line1, line2):
     rho1, theta1 = line1[0], line1[1]
@@ -41,34 +48,23 @@ def process(img, filters):
         np.maximum(accum, fimg, accum)
     return accum
 
-if __name__ == '__main__':
-    try:
-        img_fn = sys.argv[1]
-    except:
-        img_fn = './sqr.png'
-
-    img = cv2.imread(img_fn)
-    if img is None:
-        print 'Failed to load image file:', img_fn
-        sys.exit(1)
-
+def predict(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     filters = build_filters()
     res1 = process(img, filters)
 
+    gabor_filter_img = res1
     gray = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
-    cv2.imshow('gray', gray)
-    
-    ret, thresh1 = cv2.threshold(gray,127,255,cv2.THRESH_BINARY)
+    ret,thresh2 = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    ret,thresh1 = cv2.threshold(thresh2,0,255,cv2.THRESH_BINARY)
+    # ret,thresh1 = cv2.threshold(thresh1,127,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-    cv2.imshow('thresh1', thresh1)
-    if cv2.waitKey(0) & 0xff == 27:
-        cv2.destroyAllWindows()
+    # thresh1 = cv2.erode(thresh1, None)
+    # cv2.imshow('thresh1', thresh1)
+    # if cv2.waitKey(0) & 0xff == 27:
+        # cv2.destroyAllWindows()
 
-    # eroded  = cv2.erode(thresh1, None)
-
-    cv2.imshow('thresh1', thresh1)
-    rho, theta, thresh = 4, np.pi/180, 200 
+    rho, theta, thresh = 7, np.pi/180, 175 
     lines = cv2.HoughLines(thresh1, rho, theta, thresh)
 
     for line in lines:
@@ -95,18 +91,11 @@ if __name__ == '__main__':
     for i in X:
         cv2.circle(img, (i[0], i[1]), 2, (255, 0, 0))
 
-    cv2.imshow('result', img)
-    if cv2.waitKey(0) & 0xff == 27:
-        cv2.destroyAllWindows()
+    lined_image = img
     sse = {}
     for k in range(2, 7):
         kmeans = cluster.KMeans(n_clusters=k, max_iter=1000).fit(X)
         sse[k] = kmeans.inertia_ # Inertia: Sum of distances of samples to their closest cluster center
-    plt.figure()
-    plt.plot(list(sse.keys()), list(sse.values()))
-    plt.xlabel("Number of cluster")
-    plt.ylabel("SSE")
-    plt.show()
 
     curve = list(sse.values()) 
     nPoints = len(curve)
@@ -120,12 +109,35 @@ if __name__ == '__main__':
     vecFromFirstParallel = np.outer(scalarProduct, lineVecNorm)
     vecToLine = vecFromFirst - vecFromFirstParallel
     distToLine = np.sqrt(np.sum(vecToLine ** 2, axis=1))
-    print(curve)
-    print(distToLine)
     max_index = np.argmax(distToLine)
-    if max_index == 1:
-        print("Triangle Found")
-    elif max_index == 2:
-        print("Square Found")
-    else:
-        print("Some other shape")
+    return max_index, gabor_filter_img, lined_image, sse
+
+if __name__ == '__main__':
+    try:
+        img_fn = sys.argv[1]
+    except:
+        img_fn = './square.png'
+
+    img = cv2.imread(img_fn)
+    if img is None:
+        print 'Failed to load image file:', img_fn
+        sys.exit(1)
+
+    max_index, gabor_filter_img, lined_image, sse = predict(img)
+
+    cv2.imshow('Gabor Filtered Image', gabor_filter_img)
+    if cv2.waitKey(0) & 0xff == 27:
+        cv2.destroyAllWindows()
+
+    cv2.imshow('Intersection Points of Gabor Filter Image', lined_image)
+    if cv2.waitKey(0) & 0xff == 27:
+        cv2.destroyAllWindows()
+
+    plt.figure()
+    plt.plot(list(sse.keys()), list(sse.values()))
+    plt.xlabel("Number of cluster")
+    plt.ylabel("SSE")
+    plt.show()
+
+    print(detect_object(max_index))
+
